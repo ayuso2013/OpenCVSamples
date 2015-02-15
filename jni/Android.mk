@@ -6,6 +6,7 @@ include ../../sdk/native/jni/OpenCV.mk
 
 LOCAL_MODULE    := mixed_sample
 LOCAL_SRC_FILES := jni_part.cpp
+LOCAL_SRC_FILES +=   nonfree/sift.cpp
 LOCAL_SRC_FILES += CMT.cpp
 LOCAL_SRC_FILES += libopentld/tld/Settings.cpp
 LOCAL_SRC_FILES += libopentld/tld/tld.cpp
@@ -31,7 +32,15 @@ LOCAL_SRC_FILES +=   libopentld/3rdparty/cvblobs/BlobProperties.cpp
 LOCAL_SRC_FILES +=   libopentld/3rdparty/cvblobs/BlobResult.cpp
 LOCAL_SRC_FILES +=   libopentld/3rdparty/cvblobs/ComponentLabeling.cpp
 
+LOCAL_SRC_FILES +=   nonfree/surf.cpp
+LOCAL_SRC_FILES += fabmap/FabMap.cpp
+LOCAL_SRC_FILES += fabmap/ChowLiuTree.cpp
+LOCAL_SRC_FILES += fabmap/BOWMSCTrainer.cpp
+LOCAL_SRC_FILES += fabmap/FABMAPcli.cpp
+LOCAL_SRC_FILES += fabmap/openFABMAPcli.cpp
 
+
+ 
 
 LOCAL_LDLIBS +=  -llog -ldl
 
