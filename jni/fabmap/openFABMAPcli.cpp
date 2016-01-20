@@ -88,7 +88,7 @@ void sortKeypoints(std::vector<cv::KeyPoint>& keypoints);
 The openFabMapcli accepts a YML settings file, an example of which is provided.
 Modify options in the settings file for desired operation
 */
-int main(int argc, char * argv[])
+int Xmain(int argc, char * argv[])
 {
 	//load the settings file
 	std::string settfilename;
@@ -202,7 +202,7 @@ int main(int argc, char * argv[])
 	}
 	else if (function == "Test") {
 		FabMapCli *fmcli = new FabMapCli();
-		fmcli->init();
+		fmcli->init("");
 		fmcli->test2();
 	}
 	else {

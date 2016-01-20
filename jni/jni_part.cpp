@@ -4,11 +4,22 @@
 #include <opencv2/features2d/features2d.hpp>
 #include "libopentld/tld/tld.h"
 #include "cmt.h"
+#include "fabmap/openfabmap.hpp"
+#include "fabmap/fabmapcli.h"
+
+#include "aruco/cameraparameters.h"
+#include "aruco/aruco.h"
+#include "aruco/marker.h"
+
+
+
 #include <vector>
 
 using namespace std;
 using namespace cv;
 using namespace tld;
+using namespace aruco;
+
 
 extern "C" {
 JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
@@ -17,6 +28,8 @@ JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_OpenT
 bool CMTinitiated=false;
   TLD * etld=NULL ;
   CMT * cmt=new CMT();
+
+  CameraParameters *mCP;
 
   long rect[4];
 
@@ -252,5 +265,68 @@ JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_CMTLo
 
 	  CMTinitiated=true;
 }
+
+JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_CreateTestData(JNIEnv *env,jobject,jstring pathSettings,jstring pathVideo,jstring pathData)
+{
+
+
+	  const char *strPathVideo = env->GetStringUTFChars(pathVideo, 0);
+	  const char *strPathData = env->GetStringUTFChars(pathData, 0);
+	  const char *strPathSettings = env->GetStringUTFChars(pathSettings, 0);
+
+	  FabMapCli *fabMap = new FabMapCli();
+	  int res=fabMap->init(strPathSettings);
+	  if (res<0)
+		  return;
+	  fabMap->GenerateTestData(strPathVideo,strPathData);
+	  delete fabMap;
+	  env->ReleaseStringUTFChars( pathData, strPathData);
+	  env->ReleaseStringUTFChars( pathVideo, strPathVideo);
+	  env->ReleaseStringUTFChars( pathSettings, strPathSettings);
+
+
+}
+JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_ArucoInit(JNIEnv *env,jobject,jstring path)
+
+{
+    const char *str = env->GetStringUTFChars(path, 0);
+
+	mCP = new CameraParameters();
+	mCP->readFromXMLFile(str);
+
+	 env->ReleaseStringUTFChars( path, str);
+
 }
 
+JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_detectMarkers(JNIEnv*, jobject,jlong addrGray,  jlong addrRgba)
+
+
+{
+
+	Mat& img  = *(Mat*)addrGray;
+	Mat& imgColor  = *(Mat*)addrRgba;
+	vector< Marker > detectedMarkers;
+	detectedMarkers.clear();
+	MarkerDetector *md = new MarkerDetector();
+
+	//mCP->CamSize=img.size();
+	md->detect(img, detectedMarkers, *mCP, 0.09,false);
+
+	if (detectedMarkers.size() > 0)
+	{
+		for (int i=0;i<detectedMarkers.size();i++)
+		{
+			 detectedMarkers[i].draw(imgColor, Scalar(255,25,255, 255), 2, true);
+			 detectedMarkers[i].draw3dAxis(imgColor,*mCP);
+
+		}
+
+	}
+
+
+	delete md;
+}
+
+
+
+}

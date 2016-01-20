@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -14,18 +16,26 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDouble;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.highgui.VideoCapture;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.HOGDescriptor;
+import org.opencv.video.Video;
 
-
+//import es.ava.aruco.CameraParameters;
+//import es.ava.aruco.Marker;
+//import es.ava.aruco.MarkerDetector;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -45,6 +55,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.View.OnTouchListener;
+import android.widget.Button;
 
 public class Tutorial2Activity extends Activity implements
 		CvCameraViewListener2 {
@@ -58,9 +69,16 @@ public class Tutorial2Activity extends Activity implements
 	private static final int START_TLD = 6;
 	private static final int START_CMT = 7;
 	private static final int VIEW_MODE_BODY = 9;
+	private static final int VIEW_OPTICAL_FLOW = 10;
+	private static final int VIEW_OPTICAL_MARKER = 11;
+	
 
-	static final int WIDTH = 400 ;//240;// 320;
+	static final int WIDTH = 320 ;//240;// 320;
 	static final int HEIGHT =240;// 135;// ;//240;0;
+
+	private static final int iGFFTMax = 15;
+
+	private static final float mmarkerSizeMeters =  0.0010f;;
 
 	private int _canvasImgYOffset;
 	private int _canvasImgXOffset;
@@ -77,9 +95,10 @@ public class Tutorial2Activity extends Activity implements
 	private MenuItem mItemPreviewCanny;
 	private MenuItem mItemPreviewFeatures;
 	private MenuItem mItemPreviewCMT;
-	private MenuItem mItemPreviewBody;
-	private MenuItem mItemPreviewSave;
-	private MenuItem mItemPreviewLoad;
+	private MenuItem mItemPreview320;
+	private MenuItem mItemPreview640;
+	private MenuItem mItemPreview800;
+	private MenuItem mItemPreview1024;
 
 	private Tutorial3View mOpenCvCameraView;
 	SurfaceHolder _holder;
@@ -88,7 +107,27 @@ public class Tutorial2Activity extends Activity implements
 	
 	HOGDescriptor mHog;
 	
-	 CascadeClassifier mJavaDetector; 
+	CascadeClassifier mJavaDetector;
+	
+	Button buttonBody;
+	Button buttonLoad;
+	Button buttonSave;
+	Button buttonOptFlow;
+	Button buttonOptMarker;
+	
+//    public CameraParameters mCamParam;   
+//    protected MarkerDetector mDetector;
+//    protected Vector<Marker>	 	mDetectedMarkers;
+	     
+    
+	MatOfPoint2f mMOP2fptsPrev;
+	Mat matOpFlowThis;
+	Mat matOpFlowPrev;	
+	Mat mMOP2fptsSafe;
+
+	MatOfPoint2f mMOP2fptsThis;	
+
+	MatOfPoint MOPcorners;
 	
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -101,13 +140,14 @@ public class Tutorial2Activity extends Activity implements
 				// Load native library after(!) OpenCV initialization
 				//android.os.Debug.waitForDebugger();
 				System.loadLibrary("mixed_sample");
-
+				
 				mOpenCvCameraView.enableView();
 				mOpenCvCameraView.enableFpsMeter();
 
 				mHog=new HOGDescriptor();
 				mHog.setSVMDetector(HOGDescriptor.getDefaultPeopleDetector()); 
 
+				
 				load_cascade();
 			}
 				break;
@@ -143,6 +183,69 @@ public class Tutorial2Activity extends Activity implements
 		rectPaint.setStrokeWidth(5);
 		rectPaint.setStyle(Style.STROKE);
 		_holder = mOpenCvCameraView.getHolder();
+		
+		buttonBody=(Button)findViewById(R.id.button1);
+		buttonLoad=(Button)findViewById(R.id.button_load);
+		buttonSave=(Button)findViewById(R.id.button_save);
+		buttonOptFlow= (Button)findViewById(R.id.buttonOptFlow);
+		buttonOptMarker= (Button)findViewById(R.id.buttonMarker);
+		
+		buttonOptMarker.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				
+//		        mCamParam = new CameraParameters();	        
+//		        mCamParam.readFromXML(Environment.getExternalStorageDirectory().getAbsolutePath()+"/CamParams.xml");
+//		        mDetector = new MarkerDetector();	
+//		        mDetectedMarkers = new Vector<Marker>();
+				
+				ArucoInit(Environment.getExternalStorageDirectory().getAbsolutePath()+"/CamParams.xml");
+		        mViewMode=VIEW_OPTICAL_MARKER;
+			}
+		});
+		
+		buttonOptFlow.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				//String path = Environment.getExternalStorageDirectory().toString();
+				mMOP2fptsPrev= new MatOfPoint2f();
+				matOpFlowThis= new Mat();
+				matOpFlowPrev= new Mat();	
+				mMOP2fptsSafe= new Mat();;
+				MOPcorners = new MatOfPoint();
+
+				mMOP2fptsThis=new MatOfPoint2f();;	
+
+				mViewMode = VIEW_OPTICAL_FLOW;
+				//CreateTestData(path+"/robot/fabmap/andsettings.yml", path+"/robot/fabmap/entrada.mp4",path+"/robot/fabmap/entrada.yml");
+
+			}
+		});
+		
+		buttonBody.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				//String path = Environment.getExternalStorageDirectory().toString();
+				
+				mViewMode = VIEW_MODE_BODY;
+				//CreateTestData(path+"/robot/fabmap/andsettings.yml", path+"/robot/fabmap/entrada.mp4",path+"/robot/fabmap/entrada.yml");
+
+			}
+		});
+			
+
+		   buttonSave.setOnClickListener(new View.OnClickListener() {
+				public void onClick(View v) {
+					CMTLoad(Environment.getExternalStorageDirectory().getPath()+"/Model.yml");
+					uno = false;
+					mViewMode = VIEW_MODE_CMT;	
+				}
+		   });
+		   buttonLoad.setOnClickListener(new View.OnClickListener() {
+					public void onClick(View v) {
+						CMTSave(Environment.getExternalStorageDirectory().getPath()+"/Model.yml");
+					}
+
+
+		});
+		
 
 		mOpenCvCameraView.setOnTouchListener(new OnTouchListener() {
 			@Override
@@ -201,13 +304,14 @@ public class Tutorial2Activity extends Activity implements
 		mItemPreviewCanny = menu.add("Canny");
 		mItemPreviewFeatures = menu.add("TLD");
 		mItemPreviewCMT = menu.add("CMT");
-		mItemPreviewBody = menu.add("Body");
-		mItemPreviewSave = menu.add("Save");
-		mItemPreviewLoad = menu.add("Load");
+		mItemPreview320 = menu.add("320");
+		mItemPreview640 = menu.add("640");
+		mItemPreview800 = menu.add("800");
+		mItemPreview1024 = menu.add("1024");
 		
 		
 
-		// mOpenCvCameraView.setResolution(640, 480);
+	
 
 		return true;
 	}
@@ -268,6 +372,8 @@ public class Tutorial2Activity extends Activity implements
 			 Rect r=null;
 			 Rect [] rects = bodies.toArray();
 			 double[] wei=weights.toArray();
+			 
+			
 
 			double px = (double) mRgba.width() / (double) Gray.width();
 			double py = (double) mRgba.height() / (double) Gray.height();
@@ -333,6 +439,40 @@ public class Tutorial2Activity extends Activity implements
 //			 
 		}
 			break;
+		case VIEW_OPTICAL_MARKER:
+				{
+					mRgba = inputFrame.rgba();
+					
+					detectMarkers(inputFrame.gray().getNativeObjAddr(),mRgba.getNativeObjAddr());
+					
+					
+//					mDetector.detect(mRgba, mDetectedMarkers, mCamParam, mmarkerSizeMeters,mRgba);
+//					for ( int i=0;i<mDetectedMarkers.size();i++) {
+//				           
+//						mDetectedMarkers.get(i).draw(mRgba,new Scalar(0,0,255),2,true);
+//						mDetectedMarkers.get(i).draw3dAxis(mRgba, mCamParam, new Scalar(0,0,255));
+//						
+//						Marker marker= mDetectedMarkers.get(i);
+//						double d[]= new double[3];
+//						marker.getRotation().get(0, 0,d);
+//						
+//					    					    
+//					 Core.putText(mRgba, Double.toString(d[0]), new Point(10,20), Core.FONT_HERSHEY_SIMPLEX, 0.7 , new Scalar(255,255,255));
+//					 Core.putText(mRgba, Double.toString(d[1]), new Point(10,60), Core.FONT_HERSHEY_SIMPLEX, 0.7 , new Scalar(255,255,255));
+//
+//								    
+//					 mDetector = new MarkerDetector();	
+//					 mDetectedMarkers = new Vector<Marker>();					}
+//			
+				}
+			
+			break;
+		case VIEW_OPTICAL_FLOW:
+				{
+					OptFlow(inputFrame.rgba());
+				}
+			break;
+		
 		case VIEW_MODE_GRAY:
 			// input frame has gray scale format
 			Imgproc.cvtColor(inputFrame.gray(), mRgba, Imgproc.COLOR_GRAY2RGBA,
@@ -350,6 +490,7 @@ public class Tutorial2Activity extends Activity implements
 					4);
 			break;
 		case START_TLD: {
+			
 			mRgba = inputFrame.rgba();
 			mGray = Reduce(inputFrame.gray());
 			double w = mGray.width();
@@ -529,16 +670,21 @@ public class Tutorial2Activity extends Activity implements
 			mViewMode = START_CMT;
 			_trackedBox = null;
 			uno = true;
-		}else if (item == mItemPreviewBody) {
-			mViewMode = VIEW_MODE_BODY;
-		}else if (item == mItemPreviewSave) {
-			
-				CMTSave(Environment.getExternalStorageDirectory().getPath()+"/Model.yml");
-		}else if (item == mItemPreviewLoad) {
-			
-				CMTLoad(Environment.getExternalStorageDirectory().getPath()+"/Model.yml");
-				uno = false;
-				mViewMode = VIEW_MODE_CMT;
+		}else if (item == mItemPreview320) {
+			//mViewMode = VIEW_MODE_BODY;
+			mMOP2fptsPrev= new MatOfPoint2f();
+			mOpenCvCameraView.setResolution(320, 240);
+		}else if (item == mItemPreview640) {
+			mMOP2fptsPrev= new MatOfPoint2f();
+			mOpenCvCameraView.setResolution(640, 480); 
+				
+		}else if (item == mItemPreview800) {
+			mMOP2fptsPrev= new MatOfPoint2f();
+			mOpenCvCameraView.setResolution(800, 480); 
+		
+		}else if (item == mItemPreview1024) {
+			mMOP2fptsPrev= new MatOfPoint2f();
+			mOpenCvCameraView.setResolution(1024, 768); 
 		}
 
 
@@ -626,6 +772,89 @@ public class Tutorial2Activity extends Activity implements
 		return true;
 	}
 
+	Mat OptFlow(Mat mRgba)
+	{
+	
+	
+	
+	if (mMOP2fptsPrev.rows() == 0) {
+
+        //Log.d("Baz", "First time opflow");
+        // first time through the loop so we need prev and this mats
+        // plus prev points
+        // get this mat
+        Imgproc.cvtColor(mRgba, matOpFlowThis, Imgproc.COLOR_RGBA2GRAY);
+
+        // copy that to prev mat
+        matOpFlowThis.copyTo(matOpFlowPrev);
+
+        // get prev corners
+        Imgproc.goodFeaturesToTrack(matOpFlowPrev, MOPcorners, iGFFTMax, 0.05, 20);
+        mMOP2fptsPrev.fromArray(MOPcorners.toArray());
+
+        // get safe copy of this corners
+        mMOP2fptsPrev.copyTo(mMOP2fptsSafe);
+        }
+    else
+        {
+        //Log.d("Baz", "Opflow");
+        // we've been through before so
+        // this mat is valid. Copy it to prev mat
+        matOpFlowThis.copyTo(matOpFlowPrev);
+
+        // get this mat
+        Imgproc.cvtColor(mRgba, matOpFlowThis, Imgproc.COLOR_RGBA2GRAY);
+
+        // get the corners for this mat
+        Imgproc.goodFeaturesToTrack(matOpFlowThis, MOPcorners, iGFFTMax, 0.05, 20);
+        mMOP2fptsThis.fromArray(MOPcorners.toArray());
+
+        // retrieve the corners from the prev mat
+        // (saves calculating them again)
+        mMOP2fptsSafe.copyTo(mMOP2fptsPrev);
+
+        // and save this corners for next time through
+
+        mMOP2fptsThis.copyTo(mMOP2fptsSafe);
+        }
+
+
+    MatOfByte mMOBStatus= new MatOfByte();
+	MatOfFloat mMOFerr= new MatOfFloat();
+	/*
+    Parameters:
+        prevImg first 8-bit input image
+        nextImg second input image
+        prevPts vector of 2D points for which the flow needs to be found; point coordinates must be single-precision floating-point numbers.
+        nextPts output vector of 2D points (with single-precision floating-point coordinates) containing the calculated new positions of input features in the second image; when OPTFLOW_USE_INITIAL_FLOW flag is passed, the vector must have the same size as in the input.
+        status output status vector (of unsigned chars); each element of the vector is set to 1 if the flow for the corresponding features has been found, otherwise, it is set to 0.
+        err output vector of errors; each element of the vector is set to an error for the corresponding feature, type of the error measure can be set in flags parameter; if the flow wasn't found then the error is not defined (use the status parameter to find such cases).
+    */
+    Video.calcOpticalFlowPyrLK(matOpFlowPrev, matOpFlowThis, mMOP2fptsPrev, mMOP2fptsThis, mMOBStatus, mMOFerr);
+
+    List<Point> cornersPrev = mMOP2fptsPrev.toList();
+    List<Point> cornersThis = mMOP2fptsThis.toList();
+    List<Byte> byteStatus = mMOBStatus.toList();
+
+    int y = byteStatus.size() - 1;
+    int x;
+    for (x = 0; x < y; x++) {
+        if (byteStatus.get(x) == 1) {
+            Point pt = cornersThis.get(x);
+            Point pt2 = cornersPrev.get(x);
+
+            Core.circle(mRgba, pt, 5, new Scalar(255,0,0                                                                                                                                                                                                                                                                                                                    ), 3);
+
+            Core.line(mRgba, pt, pt2, new Scalar(0,0,255), 2);
+            }
+        }
+
+    return mRgba;
+	}
+
+    
+	
+	
 	public native void FindFeatures(long matAddrGr, long matAddrRgba);
 
 	public native void OpenTLD(long matAddrGr, long matAddrRgba, long x,
@@ -647,7 +876,10 @@ public class Tutorial2Activity extends Activity implements
 	public native void CMTSave(java.lang.String Path);
 	public native void CMTLoad(java.lang.String Path);
 	
+	public native void ArucoInit(java.lang.String Path);
+	public native void detectMarkers(long matAddrGray, long matAddrRgba);
 
 	private static native int[] CMTgetRect();
+	private static native void CreateTestData(java.lang.String PathSettings,java.lang.String PathVideo,java.lang.String PathData);
 
 }

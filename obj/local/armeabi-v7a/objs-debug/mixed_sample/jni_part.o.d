@@ -118,7 +118,12 @@ obj/local/armeabi-v7a/objs-debug/mixed_sample/jni_part.o: \
  ../../sdk/native/jni/include/opencv2/contrib/contrib.hpp \
  ../../sdk/native/jni/include/opencv2/contrib/retina.hpp \
  C:/android-ndk-r10c/sources/cxx-stl/gnu-libstdc++/4.6/include/valarray \
- ../../sdk/native/jni/include/opencv2/contrib/openfabmap.hpp
+ ../../sdk/native/jni/include/opencv2/contrib/openfabmap.hpp \
+ jni/fabmap/openfabmap.hpp jni/fabmap/fabmapcli.h \
+ jni/aruco/cameraparameters.h jni/aruco/exports.h jni/aruco/aruco.h \
+ jni/aruco/markerdetector.h jni/aruco/cameraparameters.h \
+ jni/aruco/marker.h jni/aruco/boarddetector.h jni/aruco/board.h \
+ jni/aruco/cvdrawingutils.h jni/aruco/aruco.h jni/aruco/marker.h
 
 C:/android-ndk-r10c/platforms/android-8/arch-arm/usr/include/jni.h:
 
@@ -369,3 +374,29 @@ C:/android-ndk-r10c/sources/cxx-stl/gnu-libstdc++/4.6/include/list:
 C:/android-ndk-r10c/sources/cxx-stl/gnu-libstdc++/4.6/include/valarray:
 
 ../../sdk/native/jni/include/opencv2/contrib/openfabmap.hpp:
+
+jni/fabmap/openfabmap.hpp:
+
+jni/fabmap/fabmapcli.h:
+
+jni/aruco/cameraparameters.h:
+
+jni/aruco/exports.h:
+
+jni/aruco/aruco.h:
+
+jni/aruco/markerdetector.h:
+
+jni/aruco/cameraparameters.h:
+
+jni/aruco/marker.h:
+
+jni/aruco/boarddetector.h:
+
+jni/aruco/board.h:
+
+jni/aruco/cvdrawingutils.h:
+
+jni/aruco/aruco.h:
+
+jni/aruco/marker.h:

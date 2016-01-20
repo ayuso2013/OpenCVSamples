@@ -22,9 +22,9 @@ cv::Ptr<cv::DescriptorExtractor> generateExtractor(cv::FileStorage &fs);
 FabMapCli::FabMapCli(){
 }
 
-int FabMapCli::init()
+int FabMapCli::init(std::string settfilename)
 {
-	std::string settfilename = "c:\\fabmap\\settings.yml";
+	//std::string settfilename = "//sdcard//robot//fabmap//settings.yml";
 	cv::FileStorage fs;
 	fs.open(settfilename, cv::FileStorage::READ);
 	if (!fs.isOpened()) {
@@ -76,24 +76,24 @@ int FabMapCli::init()
 
 	fs.release();
 
-	cv::VideoCapture movie;
-	cv::Mat movieframe;
-
-		movie.open(testvideo);
-
-	if (!movie.isOpened()) {
-		std::cerr << ": training movie not found" << std::endl;
-		return 0;
-	}
-	
-	while (movie.read(movieframe))
-	{
-		cv::Mat m = cv::Mat();
-		m = movieframe.clone();
-		themovie.push_back(m);
-	
-	}
-	movie.release();
+//	cv::VideoCapture movie;
+//	cv::Mat movieframe;
+//
+//		movie.open(testvideo);
+//
+//	if (!movie.isOpened()) {
+//		std::cerr << ": training movie not found" << std::endl;
+//		return 0;
+//	}
+//
+//	while (movie.read(movieframe))
+//	{
+//		cv::Mat m = cv::Mat();
+//		m = movieframe.clone();
+//		themovie.push_back(m);
+//
+//	}
+//	movie.release();
 
 	return 1;
 }
@@ -187,6 +187,78 @@ int FabMapCli::Find(cv::Mat frame)
    return idx;
 
 }
+
+int FabMapCli::GenerateTestData(std::string videoPath, std::string bowImageDescPath)
+{
+	bool minWords = 0;
+	//use a FLANN matcher to generate bag-of-words representations
+	cv::Ptr<cv::DescriptorMatcher> matcher =
+		cv::DescriptorMatcher::create("FlannBased");
+	cv::BOWImgDescriptorExtractor bide(extractor, matcher);
+	bide.setVocabulary(vocab);
+
+	//load movie
+	cv::VideoCapture movie;
+	movie.open(videoPath);
+
+	if (!movie.isOpened()) {
+		std::cerr << videoPath << ": movie not found" << std::endl;
+		return -1;
+	}
+
+	//extract image descriptors
+	cv::Mat fabmapTrainData;
+	std::cout << "Extracting Bag-of-words Image Descriptors" << std::endl;
+	std::cout.setf(std::ios_base::fixed);
+	std::cout.precision(0);
+
+	std::ofstream maskw;
+
+	if (minWords) {
+		//maskw.open(std::string(bowImageDescPath + "mask.txt").c_str());
+	}
+
+	cv::Mat frame, bow;
+	std::vector<cv::KeyPoint> kpts;
+
+	while (movie.read(frame)) {
+		detector->detect(frame, kpts);
+		bide.compute(frame, kpts, bow);
+
+		if (minWords) {
+			//writing a mask file
+			if (cv::countNonZero(bow) < minWords) {
+				//frame masked
+				maskw << "0" << std::endl;
+			}
+			else {
+				//frame accepted
+				maskw << "1" << std::endl;
+				fabmapTrainData.push_back(bow);
+			}
+		}
+		else {
+			fabmapTrainData.push_back(bow);
+		}
+
+		std::cout << 100.0 * (movie.get(CV_CAP_PROP_POS_FRAMES) /
+			movie.get(CV_CAP_PROP_FRAME_COUNT)) << "%    \r";
+		fflush(stdout);
+	}
+	std::cout << "Done                                       " << std::endl;
+
+	movie.release();
+
+	//save training data
+	cv::FileStorage fs;
+	fs.open(bowImageDescPath, cv::FileStorage::WRITE);
+	fs << "BOWImageDescs" << fabmapTrainData;
+	fs.release();
+
+	return 0;
+
+}
+
 
 void FabMapCli::ShowOriginal(int n)
 {

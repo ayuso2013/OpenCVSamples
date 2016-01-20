@@ -39,6 +39,20 @@ LOCAL_SRC_FILES += fabmap/BOWMSCTrainer.cpp
 LOCAL_SRC_FILES += fabmap/FABMAPcli.cpp
 LOCAL_SRC_FILES += fabmap/openFABMAPcli.cpp
 
+LOCAL_SRC_FILES += aruco/ar_omp.cpp
+LOCAL_SRC_FILES += aruco/arucofidmarkers.cpp
+LOCAL_SRC_FILES += aruco/board.cpp
+LOCAL_SRC_FILES += aruco/boarddetector.cpp
+LOCAL_SRC_FILES += aruco/cameraparameters.cpp
+LOCAL_SRC_FILES += aruco/chromaticmask.cpp
+LOCAL_SRC_FILES += aruco/cvdrawingutils.cpp
+LOCAL_SRC_FILES += aruco/highlyreliablemarkers.cpp
+LOCAL_SRC_FILES += aruco/marker.cpp
+LOCAL_SRC_FILES += aruco/markerdetector.cpp
+LOCAL_SRC_FILES += aruco/subpixelcorner.cpp
+
+
+
 
  
 
