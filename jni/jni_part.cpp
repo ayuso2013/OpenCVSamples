@@ -327,6 +327,49 @@ JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_detec
 	delete md;
 }
 
+JNIEXPORT jintArray JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_detectMarker(JNIEnv* env, jobject,jlong addrGray,  jlong addrRgba)
+{
+
+
+	 jintArray result;
+	 result = env->NewIntArray(7);
+
+// id
+// x
+// y
+// z
+// angulo
+// x img
+// y img
+
+
+	jint fill[7];
+	Mat& img  = *(Mat*)addrGray;
+	Mat& imgColor  = *(Mat*)addrRgba;
+	vector< Marker > detectedMarkers;
+	detectedMarkers.clear();
+	MarkerDetector *md = new MarkerDetector();
+
+	//mCP->CamSize=img.size();
+	md->detect(img, detectedMarkers, *mCP, 0.09,false);
+
+	if (detectedMarkers.size() > 0)
+	{
+		Marker &m=detectedMarkers[0];
+		m.draw3dAxis(imgColor,*mCP);
+		m.getdata(fill,*mCP);
+		env->SetIntArrayRegion(result, 0, 7, fill);
+
+		delete md;
+		return result;
+	}
+	else
+	{
+		delete md;
+		return NULL;
+	}
+}
+
 
 
 }
