@@ -443,8 +443,23 @@ public class Tutorial2Activity extends Activity implements
 				{
 					mRgba = inputFrame.rgba();
 					
-					detectMarkers(inputFrame.gray().getNativeObjAddr(),mRgba.getNativeObjAddr());
+				//	detectMarkers(inputFrame.gray().getNativeObjAddr(),mRgba.getNativeObjAddr());
+					int pos[] = detectMarker(inputFrame.gray().getNativeObjAddr(),mRgba.getNativeObjAddr());
 					
+					
+					//Mat dst = new Mat();
+					//Imgproc.resize(mRgba, dst, new org.opencv.core.Size(800, 480));
+					//mRgba = dst;
+					if (pos!=null)
+					{
+						String s="";
+						for (int i = 0;i<7;i++)
+						{
+							s = s+Integer.toString(pos[i])+" ";
+						}
+						Core.putText(mRgba, s, new Point(10,20), Core.FONT_HERSHEY_SIMPLEX, 0.7 , new Scalar(255,255,255));
+					}
+						
 					
 //					mDetector.detect(mRgba, mDetectedMarkers, mCamParam, mmarkerSizeMeters,mRgba);
 //					for ( int i=0;i<mDetectedMarkers.size();i++) {
@@ -878,6 +893,7 @@ public class Tutorial2Activity extends Activity implements
 	
 	public native void ArucoInit(java.lang.String Path);
 	public native void detectMarkers(long matAddrGray, long matAddrRgba);
+	public static native int[] detectMarker(long matAddrGray, long matAddrRgba);
 
 	private static native int[] CMTgetRect();
 	private static native void CreateTestData(java.lang.String PathSettings,java.lang.String PathVideo,java.lang.String PathData);
