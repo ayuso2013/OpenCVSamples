@@ -309,12 +309,12 @@ int Marker::getAngleX(CameraParameters &cp)
     cv::projectPoints(objectPoints, R, Tvec, cp.CameraMatrix, cp.Distorsion, imagePoints);
 
     //angulo del eje x??
-        double ang;
+        int ang;
         float x,y;
         x=imagePoints[1].x-imagePoints[0].x;
         y=imagePoints[1].y-imagePoints[0].y;
-        ang = 180+atan2(x,y)*180/3.14159;
-   return (int) ang;
+        ang = ((int)(atan2(-y,-x)*180/3.14159)+450) % 360;
+   return  ang;
 
 }
 void Marker::draw(Mat &in, Scalar color, int lineWidth, bool writeId) const {

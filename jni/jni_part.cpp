@@ -310,7 +310,7 @@ JNIEXPORT void JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_detec
 	MarkerDetector *md = new MarkerDetector();
 
 	//mCP->CamSize=img.size();
-	md->detect(img, detectedMarkers, *mCP, 0.09,false);
+	md->detect(img, detectedMarkers, *mCP, 0.07,false);
 
 	if (detectedMarkers.size() > 0)
 	{
