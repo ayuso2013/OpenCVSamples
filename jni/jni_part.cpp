@@ -351,12 +351,13 @@ JNIEXPORT jintArray JNICALL Java_org_opencv_samples_tutorial2_Tutorial2Activity_
 	MarkerDetector *md = new MarkerDetector();
 
 	//mCP->CamSize=img.size();
-	md->detect(img, detectedMarkers, *mCP, 0.09,false);
+	md->detect(img, detectedMarkers, *mCP, 0.07,false);
 
 	if (detectedMarkers.size() > 0)
 	{
 		Marker &m=detectedMarkers[0];
 		m.draw3dAxis(imgColor,*mCP);
+		m.draw(imgColor,Scalar(255,0,0,255),2,false);
 		m.getdata(fill,*mCP);
 		env->SetIntArrayRegion(result, 0, 7, fill);
 

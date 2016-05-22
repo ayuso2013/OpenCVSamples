@@ -38,6 +38,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Marker" />
+
+        <Button
+            android:id="@+id/buttonPhoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Photo" />
+
+        <Button
+            android:id="@+id/buttonMedir"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Medir" />
+
     </LinearLayout>
 
     <org.opencv.samples.tutorial2.Tutorial3View

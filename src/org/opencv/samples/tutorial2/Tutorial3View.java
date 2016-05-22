@@ -91,4 +91,9 @@ public class Tutorial3View extends JavaCameraView implements PictureCallback {
         }
 
     }
+
+	public float getFocalLength() {
+		return mCamera.getParameters().getFocalLength();
+		
+	}
 }

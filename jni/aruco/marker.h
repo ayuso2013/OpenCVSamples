@@ -69,7 +69,7 @@ class ARUCO_EXPORTS Marker : public std::vector< cv::Point2f > {
 
     void draw(cv::Mat &in, cv::Scalar color, int lineWidth = 1,bool writeId = true) const;
 
-    int getAngleX(CameraParameters &cp);
+    int getAngleX(CameraParameters &cp,cv::Mat tv,cv::Mat rv);
     void getdata(int fill[], CameraParameters &cp);
 
     /**Calculates the extrinsics (Rvec and Tvec) of the marker with respect to the camera
@@ -103,6 +103,8 @@ class ARUCO_EXPORTS Marker : public std::vector< cv::Point2f > {
      * mySceneNode->setOrientation( ogreOrient  );
      * ...
      */
+   void getEulerAngles(cv::Mat &rotCamerMatrix,cv::Vec3d &eulerAngles);
+
     void OgreGetPoseParameters(double position[3], double orientation[4]) throw(cv::Exception);
 
     /**Returns the centroid of the marker

@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -14,6 +16,7 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.Core.MinMaxLocResult;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -33,12 +36,22 @@ import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.HOGDescriptor;
 import org.opencv.video.Video;
 
+
+
+
+
+
+
+
+
+
 //import es.ava.aruco.CameraParameters;
 //import es.ava.aruco.Marker;
 //import es.ava.aruco.MarkerDetector;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -46,6 +59,7 @@ import android.graphics.PorterDuff;
 import android.graphics.Paint.Style;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -71,8 +85,12 @@ public class Tutorial2Activity extends Activity implements
 	private static final int VIEW_MODE_BODY = 9;
 	private static final int VIEW_OPTICAL_FLOW = 10;
 	private static final int VIEW_OPTICAL_MARKER = 11;
+	private static final int VIEW_OPTICAL_DISTANCE = 12;
 	
-
+	double[] table;
+	long time1;
+	double distance=0,Total_distance=0;
+	
 	static final int WIDTH = 320 ;//240;// 320;
 	static final int HEIGHT =240;// 135;// ;//240;0;
 
@@ -100,6 +118,8 @@ public class Tutorial2Activity extends Activity implements
 	private MenuItem mItemPreview800;
 	private MenuItem mItemPreview1024;
 
+	protected ColorBlobDetector mDetector;
+	
 	private Tutorial3View mOpenCvCameraView;
 	SurfaceHolder _holder;
 
@@ -114,6 +134,8 @@ public class Tutorial2Activity extends Activity implements
 	Button buttonSave;
 	Button buttonOptFlow;
 	Button buttonOptMarker;
+	Button buttonPhoto;
+	Button buttonMedir;
 	
 //    public CameraParameters mCamParam;   
 //    protected MarkerDetector mDetector;
@@ -146,7 +168,8 @@ public class Tutorial2Activity extends Activity implements
 
 				mHog=new HOGDescriptor();
 				mHog.setSVMDetector(HOGDescriptor.getDefaultPeopleDetector()); 
-
+				
+				
 				
 				load_cascade();
 			}
@@ -158,6 +181,8 @@ public class Tutorial2Activity extends Activity implements
 			}
 		}
 	};
+
+
 
 	public Tutorial2Activity() {
 		Log.i(TAG, "Instantiated new " + this.getClass());
@@ -189,6 +214,27 @@ public class Tutorial2Activity extends Activity implements
 		buttonSave=(Button)findViewById(R.id.button_save);
 		buttonOptFlow= (Button)findViewById(R.id.buttonOptFlow);
 		buttonOptMarker= (Button)findViewById(R.id.buttonMarker);
+		buttonPhoto= (Button)findViewById(R.id.buttonPhoto);
+		buttonMedir= (Button)findViewById(R.id.buttonMedir);
+		
+		buttonMedir.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+
+				mViewMode=VIEW_OPTICAL_DISTANCE;
+				mDetector = new ColorBlobDetector();
+				mOpenCvCameraView.setResolution(640, 480);
+		    
+    		} 
+		});
+		
+		
+		buttonPhoto.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+
+				
+				mOpenCvCameraView.takePicture(Environment.getExternalStorageDirectory().getAbsolutePath()+"/DCIM/camera/photo"+Long.toString(System.currentTimeMillis())+".bmp");
+			}
+		});
 		
 		buttonOptMarker.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
@@ -215,6 +261,15 @@ public class Tutorial2Activity extends Activity implements
 				mMOP2fptsThis=new MatOfPoint2f();;	
 
 				mViewMode = VIEW_OPTICAL_FLOW;
+						    
+			    
+			    table = new double[480];
+			    for (int i = 0;i<480;i++)
+			    {
+			     double py=i;
+			     table[i]=calc_distance( py-320, 45, 740,mOpenCvCameraView.getFocalLength(),270);	    	
+			    }
+
 				//CreateTestData(path+"/robot/fabmap/andsettings.yml", path+"/robot/fabmap/entrada.mp4",path+"/robot/fabmap/entrada.yml");
 
 			}
@@ -438,6 +493,52 @@ public class Tutorial2Activity extends Activity implements
 //			 }
 //			 
 		}
+			break;
+		case VIEW_OPTICAL_DISTANCE:
+		{
+			 mGray = inputFrame.gray();
+			 org.opencv.core.Size s = new Size(3,3);
+			 Mat mat=new Mat();
+			 Imgproc.GaussianBlur(mGray, mat, s, 2);
+			 MinMaxLocResult res = Core.minMaxLoc(mat);
+			 
+			 mRgba = inputFrame.rgba();
+			 
+			 /*
+			 Mat pointMatRgba = mRgba.submat((int)res.maxLoc.y,(int)res.maxLoc.y+1,(int)res.maxLoc.x,(int)res.maxLoc.x+1);
+			 Mat pointMatHsv=new Mat();
+			 
+			 double[] cols= pointMatRgba.get(0,0);
+			 Scalar mBlobColorRgba= new Scalar(cols);
+			 
+			 
+            Imgproc.cvtColor(pointMatRgba,pointMatHsv,Imgproc.COLOR_RGB2HSV);
+            Scalar hsv= new Scalar(pointMatHsv.get(0, 0));
+			 mDetector.setHsvColor(hsv);
+			 mDetector.process(mRgba);
+			 List<MatOfPoint> contours = mDetector.getContours();
+	         Imgproc.drawContours(mRgba, contours, -1, new Scalar(0,0,255),4);
+			 */
+			 Core.circle(mRgba, res.maxLoc, 30, new Scalar(0,255,0), 3);
+	
+			 double distance;
+			 double offset = Math.atan(5/320);
+			 double alfa = Math.atan((res.maxLoc.x-320.0)/740.0  );
+			 distance =63.0/ Math.tan(alfa-offset); 
+			 if (mRgba.size().width!=640)
+			Core.putText(mRgba, "Select 640x480", new Point(10,50), Core.FONT_HERSHEY_SIMPLEX, 0.7 , new Scalar(255,255,255));
+			 else
+			 Core.putText(mRgba, "Distance: "+(int)distance+" "+(int)(res.maxLoc.x-320), new Point(10,50), Core.FONT_HERSHEY_SIMPLEX, 0.7 , new Scalar(255,255,255));
+			 
+			 /*
+			 Mat colorLabel = mRgba.submat(4, 68, 4, 68);
+	            colorLabel.setTo(mBlobColorRgba);
+*/
+//	            Mat spectrumLabel = mRgba.submat(4, 4 + mSpectrum.rows(), 70, 70 + mSpectrum.cols());
+//	            mSpectrum.copyTo(spectrumLabel);
+		}
+			
+			
 			break;
 		case VIEW_OPTICAL_MARKER:
 				{
@@ -809,6 +910,8 @@ public class Tutorial2Activity extends Activity implements
 
         // get safe copy of this corners
         mMOP2fptsPrev.copyTo(mMOP2fptsSafe);
+        
+        time1 = System.currentTimeMillis();
         }
     else
         {
@@ -853,21 +956,65 @@ public class Tutorial2Activity extends Activity implements
 
     int y = byteStatus.size() - 1;
     int x;
+    distance=0;
     for (x = 0; x < y; x++) {
         if (byteStatus.get(x) == 1) {
             Point pt = cornersThis.get(x);
             Point pt2 = cornersPrev.get(x);
-
+            
             Core.circle(mRgba, pt, 5, new Scalar(255,0,0                                                                                                                                                                                                                                                                                                                    ), 3);
 
             Core.line(mRgba, pt, pt2, new Scalar(0,0,255), 2);
+            if (inrange((int)pt.y,(int)pt2.y))
+            		distance=distance+table[(int)pt.y]-table[(int)pt2.y];
             }
         }
-
+    if (y>0)
+    	distance = distance/y;
+    Total_distance+=distance;
+    int d =(int) Total_distance;
+    long t2= System.currentTimeMillis();
+    
+    double vel = (distance *1000)/ (t2-time1); //cm/seg
+    Core.putText(mRgba, " "+(int)vel+" "+d, new Point(10,40), Core.FONT_HERSHEY_SIMPLEX, 1 , new Scalar(255,255,255));
+   // double velo = ;
+    time1=t2;
     return mRgba;
 	}
 
-    
+	boolean inrange(int a,int b)
+	{
+		if (a<480)
+			if (a>-1)
+				if (b<480)
+					if (b>-1)
+						return true;
+						
+				
+		return false;
+		
+	}
+	
+    double calc_distance(double py, double alfa, double fy,double Fy,double h2)
+    /*alfa = inclinación cámara
+     * py= pixel y
+     * fy=distancia focal y en pixels
+     * Fy=distancia focal y en milimetros
+     * h2= altura de la cámara en mm
+     * d= distancia al punto en mm
+     */
+    {
+    	double PI = 3.14159;
+    	double falfa= (alfa/180)*PI;
+    	double h1= Fy * Math.cos(falfa);
+    	double beta =Math.atan(py/fy);
+    	double delta = PI/2-falfa-beta;
+    	double H=h1+h2;
+    	double D=H/Math.tan(delta);
+    	double L = Fy*Math.sin(falfa);
+    	double d = D-L;
+    	return d;
+    }
 	
 	
 	public native void FindFeatures(long matAddrGr, long matAddrRgba);

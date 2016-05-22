@@ -67,6 +67,26 @@ void CvDrawingUtils::draw3dAxis(cv::Mat &Image, Marker &m, const CameraParameter
 
 
 
+    objectPoints.at< float >(0, 0) = 0;
+    objectPoints.at< float >(0, 1) = 0;
+    objectPoints.at< float >(0, 2) = 0;
+    objectPoints.at< float >(1, 0) = size;
+    objectPoints.at< float >(1, 1) = 0;
+    objectPoints.at< float >(1, 2) = 0;
+    objectPoints.at< float >(2, 0) = 0;
+    objectPoints.at< float >(2, 1) = size;
+    objectPoints.at< float >(2, 2) = 0;
+    objectPoints.at< float >(3, 0) = 0;
+    objectPoints.at< float >(3, 1) = 0;
+    objectPoints.at< float >(3, 2) = size;
+    cv::Mat R,T;
+    m.Rvec.copyTo ( R );
+
+    R.at< float >(0, 2)=0;
+    cv::projectPoints(objectPoints, R, m.Tvec, CP.CameraMatrix, CP.Distorsion, imagePoints);
+
+   // cv::line(Image, imagePoints[0], imagePoints[2], Scalar(0, 255, 0, 255), 2, CV_AA);
+
 
 }
 

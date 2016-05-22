@@ -73,7 +73,13 @@ Marker::Marker(const std::vector< cv::Point2f > &corners, int _id) : std::vector
  *
 */
 ////////////////////////////////////////
-
+int radGrad(float f)
+{
+	int t= (int) (f*180/3.14159);
+	t = t+360;
+	t = t % 360;
+	return t;
+}
 
 /**
    * Given a Rotation and a Translation expressed both as a vector, returns the corresponding 4x4 matrix
@@ -283,12 +289,13 @@ void Marker::OgreGetPoseParameters(double position[3], double orientation[4]) th
         *apkQuat[k] = (axes[k][i] + axes[i][k]) * fRoot;
     }
 }
-int Marker::getAngleX(CameraParameters &cp)
+int Marker::getAngleX(CameraParameters &cp,cv::Mat tv,cv::Mat rv)
 {
+/*
 	float size = ssize ;
 
 	cv::Mat R,T;
-	Rvec.copyTo ( R );
+	rv.copyTo ( R );
 
     Mat objectPoints(4, 3, CV_32FC1);
     objectPoints.at< float >(0, 0) = 0;
@@ -305,16 +312,55 @@ int Marker::getAngleX(CameraParameters &cp)
     objectPoints.at< float >(3, 2) = size;
 
     vector< Point2f > imagePoints;
-    R.at< float >(0, 2)=0;
+//    R.at< float >(0, 0)=0;
+
     cv::projectPoints(objectPoints, R, Tvec, cp.CameraMatrix, cp.Distorsion, imagePoints);
 
     //angulo del eje x??
         int ang;
         float x,y;
-        x=imagePoints[1].x-imagePoints[0].x;
-        y=imagePoints[1].y-imagePoints[0].y;
-        ang = ((int)(atan2(-y,-x)*180/3.14159)+450) % 360;
-   return  ang;
+        x=imagePoints[2].x-imagePoints[0].x;
+        y=imagePoints[2].y-imagePoints[0].y;
+
+        ang = (int)(atan2(x,y)*180/3.14159);
+
+      //  ang = ((int)(atan2(-y,-x)*180/3.14159)+450) % 360;
+
+/*
+        cv::Mat R2(3, 3, CV_32F);
+        cv::Rodrigues(Rvec, R2);
+
+        cv::Mat cameraRotationVector;
+
+        cv::Rodrigues(R2.t(),cameraRotationVector);
+       //ang = (int)(cameraRotationVector.at< float >(0,0)*180/3.14159);
+
+*//*
+		int ang;
+		cv::Mat R2(3, 1, CV_32F);
+	    cv::Rodrigues(Rvec, R2);
+	    float f1=0;//atan2(tv.at< float >(0, 1),tv.at< float >(0, 0));
+
+//	    float mag = sqrt(R2.at<float>(0,2)*R2.at<float>(0,2)+
+	//    				  R2.at<float>(1,2)*R2.at<float>(1,2)+
+	  //  				  R2.at<float>(2,2)*R2.at<float>(2,2));
+	    float mag = Rvec.at<float>(0,2);
+        ang = (int)(mag*180/3.14159+360) % 360;
+*/
+
+    float f1=atan2(tv.at< float >(0, 1),tv.at< float >(0, 0));
+	 Point cent(0, 0);
+	 for (int i = 0; i < 4; i++) {
+	       cent.x += (*this)[i].x;
+	       cent.y += (*this)[i].y;
+	 }
+	 cent.x /= 4.;
+	 cent.y /= 4.;
+
+     int ang;
+     ang = (32*(cent.x - 320))/320;
+
+   return  (ang+radGrad(f1)+360)%360;
 
 }
 void Marker::draw(Mat &in, Scalar color, int lineWidth, bool writeId) const {
@@ -374,13 +420,23 @@ void Marker::draw3dAxis(cv::Mat im,CameraParameters &cp)
 	 }
 	 cent.x /= 4.;
 	 cent.y /= 4.;
+
+
+
 	 cent.y+=20;
 	 cent.x-=200;
 	 //sprintf(cad, "x= %.1f y= %.1f, z= %.1f",p3f.x*100,p3f.y*100,p3f.z*100);
-    // sprintf(cad, "x=%.1f y = %.1f z=%.1f",Tvec.at< float >(0, 0)*100,Tvec.at< float >(1, 0)*100,Tvec.at< float >(2, 0)*100);
-	// putText(im, cad, cent, FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255,25,255, 255), 2);
-	// cent.y+=20;
-	 //sprintf(cad, "x=%.1f y = %.1f z=%.1f",p3f.x*100,p3f.y*100,p3f.z*100);
+/*
+	 cv::Mat R2(3, 3, CV_32F);
+     cv::Rodrigues(Rvec, R2);
+*/
+	 sprintf(cad, "x=%.1f y = %.1f z=%.1f",rv.at< float >(0, 0)*180/3.14159,rv.at< float >(0, 1)*180/3.14159,rv.at< float >(0, 2)*180/3.14159);
+	 putText(im, cad, cent, FONT_HERSHEY_SIMPLEX, 0.9, Scalar(255,25,255, 255), 2);
+
+	  cent.y+=20;
+	 sprintf(cad, "w=%d h= %d ",rv.size().height,rv.size().width);
+	 putText(im, cad, cent, FONT_HERSHEY_SIMPLEX, 0.9, Scalar(255,25,255, 255), 2);
+
 	 cent.y=50;
 	 cent.x=10;
 	 sprintf(cad, "x=%.1f y = %.1f z=%.1f",tv.at< float >(0, 0)*100,tv.at< float >(0, 1)*100,tv.at< float >(0, 2)*100);
@@ -395,8 +451,8 @@ void Marker::draw3dAxis(cv::Mat im,CameraParameters &cp)
 	 sprintf(cad, "alfa=%.1f beta = %.1f ",alfa,beta);
 	 cv::putText(im, cad, cent, FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255,25,255, 255), 2);
 */
-	 sprintf(cad, "alfa = %d",getAngleX(cp));
-	 cv::putText(im, cad, cent, FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255,25,255, 255), 2);
+	 sprintf(cad, "alfa = %d",getAngleX(cp,tv,rv));
+	 cv::putText(im, cad, cent, FONT_HERSHEY_SIMPLEX, 0.9, Scalar(255,255,255, 255), 2);
 
 
 
@@ -422,8 +478,7 @@ void Marker::getdata(int fill[], CameraParameters &cp)
 	fill[1]= (int) (tv.at< float >(0, 0)*100);
 	fill[2]= (int) (tv.at< float >(0, 1)*100);
 	fill[3]= (int) (tv.at< float >(0, 2)*100);
-	fill[4]= (int) getAngleX(cp);
-
+	fill[4]= getAngleX(cp,tv,rv);
 	 Point cent(0, 0);
 	 for (int i = 0; i < 4; i++) {
 	      cent.x += (*this)[i].x;
@@ -433,6 +488,26 @@ void Marker::getdata(int fill[], CameraParameters &cp)
      fill[6] = (int)(cent.y / 4.);
 
 
+}
+
+
+void Marker::getEulerAngles(Mat &rotCamerMatrix,Vec3d &eulerAngles){
+	cv::Mat rotCamerMatrix1;
+	Rodrigues(rotCamerMatrix,rotCamerMatrix1);
+    Mat cameraMatrix,rotMatrix,transVect,rotMatrixX,rotMatrixY,rotMatrixZ;
+    double* _r = rotCamerMatrix1.ptr<double>();
+    double projMatrix[12] = {_r[0],_r[1],_r[2],0,
+                          _r[3],_r[4],_r[5],0,
+                          _r[6],_r[7],_r[8],0};
+
+    decomposeProjectionMatrix( Mat(3,4,CV_64FC1,projMatrix),
+                               cameraMatrix,
+                               rotMatrix,
+                               transVect,
+                               rotMatrixX,
+                               rotMatrixY,
+                               rotMatrixZ,
+                               eulerAngles);
 }
 
 /**
